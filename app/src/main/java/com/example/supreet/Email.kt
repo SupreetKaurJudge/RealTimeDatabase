@@ -47,6 +47,16 @@ class Email : AppCompatActivity() {
                 // decision.
             }
         }
+    val imagePermissionLauncher=
+        registerForActivityResult(
+            ActivityResultContracts.GetContent()
+
+        )
+        {
+            it?.let{
+                binding.ivimage.setImageURI(it)
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,7 +70,7 @@ class Email : AppCompatActivity() {
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         //start of permission
-      /*  binding.btnpermission.setOnClickListener {
+        binding.btnpermission.setOnClickListener {
             when {
                 ContextCompat.checkSelfPermission(
                     this,
@@ -79,8 +89,28 @@ class Email : AppCompatActivity() {
                 }
             }
         }
-*/
+
         //end of permission
+        binding.btnimage.setOnClickListener {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    imagePermissionLauncher.launch("image/*")
+                    // You can use the API that requires the permission.
+                }
+
+
+                else -> {
+                    // You can directly ask for the permission.
+                    // The registered ActivityResultCallback gets the result of this request.
+                    requestPermissionLauncher.launch(
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                    )
+                }
+            }
+        }
 
         binding.btn.setOnClickListener {
             if(binding.Name.text.toString().isNullOrBlank()){

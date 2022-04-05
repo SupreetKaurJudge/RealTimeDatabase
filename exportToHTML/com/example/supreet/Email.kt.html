@@ -1,0 +1,279 @@
+<html>
+<head>
+<title>Email.kt</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #0033b3;}
+.s1 { color: #080808;}
+.s2 { color: #1750eb;}
+.s3 { color: #8c8c8c; font-style: italic;}
+.s4 { color: #067d17;}
+.s5 { color: #0037a6;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+Email.kt</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">com.example.supreet</span>
+
+<span class="s1">import android.Manifest</span>
+<span class="s1">import android.content.ContentValues.TAG</span>
+<span class="s1">import android.content.Intent</span>
+<span class="s1">import android.content.pm.PackageManager</span>
+<span class="s1">import androidx.appcompat.app.AppCompatActivity</span>
+<span class="s1">import android.os.Bundle</span>
+<span class="s1">import android.provider.ContactsContract</span>
+<span class="s1">import android.util.Log</span>
+<span class="s1">import android.widget.Toast</span>
+<span class="s1">import androidx.activity.result.contract.ActivityResultContracts</span>
+<span class="s1">import androidx.core.content.ContextCompat</span>
+<span class="s1">import androidx.databinding.DataBindingUtil</span>
+<span class="s1">import com.example.supreet.databinding.ActivityEmailBinding</span>
+<span class="s1">import com.google.android.gms.auth.api.signin.GoogleSignIn</span>
+<span class="s1">import com.google.android.gms.auth.api.signin.GoogleSignInClient</span>
+<span class="s1">import com.google.android.gms.auth.api.signin.GoogleSignInOptions</span>
+<span class="s1">import com.google.android.gms.common.api.ApiException</span>
+<span class="s1">import com.google.firebase.auth.FirebaseAuth</span>
+<span class="s1">import com.google.firebase.auth.FirebaseUser</span>
+<span class="s1">import com.google.firebase.auth.GoogleAuthProvider</span>
+<span class="s1">import com.google.firebase.auth.ktx.auth</span>
+<span class="s1">import com.google.firebase.database.DatabaseReference</span>
+<span class="s1">import com.google.firebase.database.ktx.database</span>
+<span class="s1">import com.google.firebase.ktx.Firebase</span>
+
+<span class="s0">class </span><span class="s1">Email : AppCompatActivity() {</span>
+    <span class="s1">lateinit </span><span class="s0">var </span><span class="s1">auth : FirebaseAuth</span>
+    <span class="s1">lateinit </span><span class="s0">var </span><span class="s1">binding : ActivityEmailBinding</span>
+    <span class="s1">lateinit </span><span class="s0">var </span><span class="s1">googleSignInClient: GoogleSignInClient</span>
+    <span class="s1">private </span><span class="s0">val </span><span class="s1">GOOGLE_SIGNIN = </span><span class="s2">1</span>
+    <span class="s0">val </span><span class="s1">database = Firebase.database</span>
+    <span class="s1">lateinit </span><span class="s0">var </span><span class="s1">myRef : DatabaseReference</span>
+    <span class="s0">val </span><span class="s1">requestPermissionLauncher =</span>
+        <span class="s1">registerForActivityResult(</span>
+            <span class="s1">ActivityResultContracts.RequestPermission()</span>
+        <span class="s1">) { isGranted: Boolean -&gt;</span>
+            <span class="s0">if </span><span class="s1">(isGranted) {</span>
+                <span class="s3">// Permission is granted. Continue the action or workflow in your</span>
+                <span class="s3">// app.</span>
+            <span class="s1">} </span><span class="s0">else </span><span class="s1">{</span>
+                <span class="s3">// Explain to the user that the feature is unavailable because the</span>
+                <span class="s3">// features requires a permission that the user has denied. At the</span>
+                <span class="s3">// same time, respect the user's decision. Don't link to system</span>
+                <span class="s3">// settings in an effort to convince the user to change their</span>
+                <span class="s3">// decision.</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+    <span class="s0">val </span><span class="s1">imagePermissionLauncher=</span>
+        <span class="s1">registerForActivityResult(</span>
+            <span class="s1">ActivityResultContracts.GetContent()</span>
+
+        <span class="s1">)</span>
+        <span class="s1">{</span>
+            <span class="s1">it?.let{</span>
+                <span class="s1">binding.ivimage.setImageURI(it)</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+
+    <span class="s1">override </span><span class="s0">fun </span><span class="s1">onCreate(savedInstanceState: Bundle?) {</span>
+        <span class="s0">super</span><span class="s1">.onCreate(savedInstanceState)</span>
+        <span class="s1">binding = DataBindingUtil.setContentView(</span><span class="s0">this</span><span class="s1">,R.layout.activity_email)</span>
+        <span class="s1">auth = Firebase.auth</span>
+        <span class="s0">val </span><span class="s1">gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)</span>
+            <span class="s1">.requestIdToken(getString(R.string.default_web_client_id))</span>
+            <span class="s1">.requestEmail()</span>
+            <span class="s1">.build()</span>
+
+        <span class="s1">googleSignInClient = GoogleSignIn.getClient(</span><span class="s0">this</span><span class="s1">, gso)</span>
+
+        <span class="s3">//start of permission</span>
+        <span class="s1">binding.btnpermission.setOnClickListener {</span>
+            <span class="s0">when </span><span class="s1">{</span>
+                <span class="s1">ContextCompat.checkSelfPermission(</span>
+                    <span class="s0">this</span><span class="s1">,</span>
+                    <span class="s1">Manifest.permission.CAMERA</span>
+                <span class="s1">) == PackageManager.PERMISSION_GRANTED -&gt; {</span>
+                    <span class="s3">// You can use the API that requires the permission.</span>
+                <span class="s1">}</span>
+
+
+                <span class="s0">else </span><span class="s1">-&gt; {</span>
+                    <span class="s3">// You can directly ask for the permission.</span>
+                    <span class="s3">// The registered ActivityResultCallback gets the result of this request.</span>
+                    <span class="s1">requestPermissionLauncher.launch(</span>
+                        <span class="s1">Manifest.permission.CAMERA</span>
+                    <span class="s1">)</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+
+        <span class="s3">//end of permission</span>
+        <span class="s1">binding.btnimage.setOnClickListener {</span>
+            <span class="s0">when </span><span class="s1">{</span>
+                <span class="s1">ContextCompat.checkSelfPermission(</span>
+                    <span class="s0">this</span><span class="s1">,</span>
+                    <span class="s1">Manifest.permission.READ_EXTERNAL_STORAGE</span>
+                <span class="s1">) == PackageManager.PERMISSION_GRANTED -&gt; {</span>
+                    <span class="s1">imagePermissionLauncher.launch(</span><span class="s4">&quot;image/*&quot;</span><span class="s1">)</span>
+                    <span class="s3">// You can use the API that requires the permission.</span>
+                <span class="s1">}</span>
+
+
+                <span class="s0">else </span><span class="s1">-&gt; {</span>
+                    <span class="s3">// You can directly ask for the permission.</span>
+                    <span class="s3">// The registered ActivityResultCallback gets the result of this request.</span>
+                    <span class="s1">requestPermissionLauncher.launch(</span>
+                        <span class="s1">Manifest.permission.READ_EXTERNAL_STORAGE</span>
+                    <span class="s1">)</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+
+        <span class="s1">binding.btn.setOnClickListener {</span>
+            <span class="s0">if</span><span class="s1">(binding.Name.text.toString().isNullOrBlank()){</span>
+                <span class="s1">binding.Name.error = </span><span class="s4">&quot;Enter email&quot;</span>
+                <span class="s0">return</span><span class="s1">@setOnClickListener</span>
+            <span class="s1">}</span>
+            <span class="s0">if </span><span class="s1">(!android.util.Patterns.EMAIL_ADDRESS.matcher(binding.Name.text?.trim()).matches()){</span>
+                <span class="s1">binding.Name.error = </span><span class="s4">&quot;enter Valid Email&quot;</span>
+                <span class="s0">return</span><span class="s1">@setOnClickListener</span>
+            <span class="s1">}</span>
+            <span class="s0">if</span><span class="s1">(binding.Password.text.toString().isNullOrBlank()){</span>
+                <span class="s1">binding.Password.error = </span><span class="s4">&quot;Enter password&quot;</span>
+                <span class="s0">return</span><span class="s1">@setOnClickListener</span>
+            <span class="s1">}</span>
+            <span class="s0">if</span><span class="s1">(binding.Password.text.toString().length&lt;</span><span class="s2">6</span><span class="s1">){</span>
+                <span class="s1">binding.Password.error = </span><span class="s4">&quot;Password should not be less than 6 characters&quot;</span>
+                <span class="s0">return</span><span class="s1">@setOnClickListener</span>
+            <span class="s1">}</span>
+            <span class="s1">signInEMAIL(binding.Name.text.toString(),binding.Password.text.toString())</span>
+        <span class="s1">}</span>
+        <span class="s1">binding.btngoogle.setOnClickListener {</span>
+            <span class="s1">signIn()</span>
+        <span class="s1">}</span>
+        <span class="s1">binding.btncreateaccount.setOnClickListener {</span>
+            <span class="s0">var </span><span class="s1">intent = Intent(</span><span class="s0">this</span><span class="s1">@Email, MainActivity2::</span><span class="s0">class</span><span class="s1">.java)</span>
+            <span class="s1">startActivity(intent)</span>
+        <span class="s1">}</span>
+
+
+    <span class="s1">}</span>
+    <span class="s1">public override </span><span class="s0">fun </span><span class="s1">onStart() {</span>
+        <span class="s0">super</span><span class="s1">.onStart()</span>
+        <span class="s3">// Check if user is signed in (non-null) and update UI accordingly.</span>
+        <span class="s0">val </span><span class="s1">currentUser = auth.currentUser</span>
+        <span class="s3">//  updateUI(currentUser)</span>
+        <span class="s0">if</span><span class="s1">(currentUser != </span><span class="s0">null</span><span class="s1">){</span>
+            <span class="s1">Log.e(TAG, </span><span class="s4">&quot; current user name </span><span class="s5">${</span><span class="s1">currentUser.email</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+            <span class="s1">startActivity(Intent(</span><span class="s0">this</span><span class="s1">@Email, ProfileActivity::</span><span class="s0">class</span><span class="s1">.java))</span>
+            <span class="s0">this</span><span class="s1">.finish()</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">reload() {</span>
+
+    <span class="s1">}</span>
+
+    <span class="s1">override </span><span class="s0">fun </span><span class="s1">onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {</span>
+        <span class="s0">super</span><span class="s1">.onActivityResult(requestCode, resultCode, data)</span>
+        <span class="s3">// Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);</span>
+        <span class="s0">if </span><span class="s1">(requestCode == RC_SIGN_IN) {</span>
+            <span class="s0">val </span><span class="s1">task = GoogleSignIn.getSignedInAccountFromIntent(data)</span>
+            <span class="s0">try </span><span class="s1">{</span>
+                <span class="s3">// Google Sign In was successful, authenticate with Firebase</span>
+                <span class="s0">val </span><span class="s1">account = task.getResult(ApiException::</span><span class="s0">class</span><span class="s1">.java)!!</span>
+                <span class="s1">Log.d(TAG, </span><span class="s4">&quot;firebaseAuthWithGoogle:&quot; </span><span class="s1">+ account.id)</span>
+                <span class="s1">firebaseAuthWithGoogle(account.idToken!!)</span>
+            <span class="s1">} catch (e: ApiException) {</span>
+                <span class="s3">// Google Sign In failed, update UI appropriately</span>
+                <span class="s1">Log.w(TAG, </span><span class="s4">&quot;Google sign in failed&quot;</span><span class="s1">, e)</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+    <span class="s3">// [END onactivityresult]</span>
+
+
+    <span class="s3">// [START auth_with_google]</span>
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">firebaseAuthWithGoogle(idToken: String) {</span>
+        <span class="s0">val </span><span class="s1">credential = GoogleAuthProvider.getCredential(idToken, </span><span class="s0">null</span><span class="s1">)</span>
+        <span class="s1">auth.signInWithCredential(credential)</span>
+            <span class="s1">.addOnCompleteListener(</span><span class="s0">this</span><span class="s1">) { task -&gt;</span>
+                <span class="s0">if </span><span class="s1">(task.isSuccessful) {</span>
+                    <span class="s3">// Sign in success, update UI with the signed-in user's information</span>
+                    <span class="s1">Log.d(TAG, </span><span class="s4">&quot;signInWithCredential:success&quot;</span><span class="s1">)</span>
+                    <span class="s1">updateRealTimeDatabase()</span>
+                <span class="s1">} </span><span class="s0">else </span><span class="s1">{</span>
+                    <span class="s3">// If sign in fails, display a message to the user.</span>
+                    <span class="s1">Log.w(TAG, </span><span class="s4">&quot;signInWithCredential:failure&quot;</span><span class="s1">, task.exception)</span>
+                    <span class="s1">updateUI(</span><span class="s0">null</span><span class="s1">)</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+    <span class="s1">}</span>
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">updateRealTimeDatabase() {</span>
+        <span class="s0">val </span><span class="s1">user = auth.currentUser</span>
+        <span class="s0">var </span><span class="s1">myRef: DatabaseReference = database.getReference(user!!.uid)</span>
+
+        <span class="s1">myRef.setValue(user!!.email)</span>
+        <span class="s1">startActivity(Intent(</span><span class="s0">this</span><span class="s1">@Email, ProfileActivity::</span><span class="s0">class</span><span class="s1">.java))</span>
+        <span class="s0">this</span><span class="s1">.finish()</span>
+    <span class="s1">}</span>
+    <span class="s3">// [END auth_with_google]</span>
+
+    <span class="s3">// [START signin]</span>
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">signIn() {</span>
+        <span class="s0">val </span><span class="s1">signInIntent = googleSignInClient.signInIntent</span>
+        <span class="s1">startActivityForResult(signInIntent, RC_SIGN_IN)</span>
+    <span class="s1">}</span>
+    <span class="s3">// [END signin]</span>
+
+
+
+    <span class="s1">companion </span><span class="s0">object </span><span class="s1">{</span>
+        <span class="s1">private const </span><span class="s0">val </span><span class="s1">TAG = </span><span class="s4">&quot;GoogleActivity&quot;</span>
+        <span class="s1">private const </span><span class="s0">val </span><span class="s1">RC_SIGN_IN = </span><span class="s2">9001</span>
+    <span class="s1">}</span>
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">createAccount(email: String, password: String) {</span>
+        <span class="s3">// [START create_user_with_email]</span>
+        <span class="s1">auth.createUserWithEmailAndPassword(email, password)</span>
+            <span class="s1">.addOnCompleteListener(</span><span class="s0">this</span><span class="s1">) { task -&gt;</span>
+                <span class="s0">if </span><span class="s1">(task.isSuccessful) {</span>
+                    <span class="s3">// Sign in success, update UI with the signed-in user's information</span>
+                    <span class="s1">Log.d(TAG, </span><span class="s4">&quot;createUserWithEmail:success&quot;</span><span class="s1">)</span>
+                    <span class="s1">updateRealTimeDatabase()</span>
+                <span class="s1">} </span><span class="s0">else </span><span class="s1">{</span>
+                    <span class="s3">// If sign in fails, display a message to the user.</span>
+                    <span class="s1">Log.w(TAG, </span><span class="s4">&quot;createUserWithEmail:failure&quot;</span><span class="s1">, task.exception)</span>
+                    <span class="s1">Toast.makeText(baseContext, </span><span class="s4">&quot;Authentication failed.&quot;</span><span class="s1">,</span>
+                        <span class="s1">Toast.LENGTH_SHORT).show()</span>
+                    <span class="s1">updateUI(</span><span class="s0">null</span><span class="s1">)</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s3">// [END create_user_with_email]</span>
+    <span class="s1">}</span>
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">signInEMAIL(email: String, password: String) {</span>
+        <span class="s3">// [START sign_in_with_email]</span>
+        <span class="s1">auth.signInWithEmailAndPassword(email, password)</span>
+            <span class="s1">.addOnCompleteListener(</span><span class="s0">this</span><span class="s1">) { task -&gt;</span>
+                <span class="s0">if </span><span class="s1">(task.isSuccessful) {</span>
+                    <span class="s3">// Sign in success, update UI with the signed-in user's information</span>
+                    <span class="s1">Log.d(TAG, </span><span class="s4">&quot;signInWithEmail:success&quot;</span><span class="s1">)</span>
+                    <span class="s1">updateRealTimeDatabase()</span>
+                <span class="s1">} </span><span class="s0">else </span><span class="s1">{</span>
+                    <span class="s3">// If sign in fails, display a message to the user.</span>
+                    <span class="s1">Log.w(TAG, </span><span class="s4">&quot;signInWithEmail:failure&quot;</span><span class="s1">, task.exception)</span>
+                    <span class="s1">Toast.makeText(baseContext, </span><span class="s4">&quot;Authentication failed.&quot;</span><span class="s1">,</span>
+                        <span class="s1">Toast.LENGTH_SHORT).show()</span>
+                    <span class="s1">updateUI(</span><span class="s0">null</span><span class="s1">)</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s3">// [END sign_in_with_email]</span>
+    <span class="s1">}</span>
+
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">updateUI(user: FirebaseUser?) {</span>
+
+    <span class="s1">}</span>
+<span class="s1">}</span></pre>
+</body>
+</html>

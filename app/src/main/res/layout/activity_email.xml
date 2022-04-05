@@ -55,8 +55,21 @@
         android:id="@+id/btnpermission"
         android:layout_gravity="center"
         android:layout_marginTop="20dp"/>
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:foregroundGravity="center"
+            android:id="@+id/ivimage"
+            />
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="image"
+            android:id="@+id/btnimage"
+            />
 
 
 
-</LinearLayout>
+
+    </LinearLayout>
 </layout>
