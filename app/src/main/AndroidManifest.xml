@@ -14,9 +14,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Supreet">
         <activity
+            android:name=".PhoneActivity"
+            android:exported="false" />
+        <activity
             android:name=".Email"
             android:exported="false" />
-
         <activity
             android:name=".ProfileActivity"
             android:exported="false" />
@@ -24,7 +26,7 @@
             android:name=".MainActivity2"
             android:exported="false" />
         <activity
-            android:name=".PhoneActivity"
+            android:name=".query"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

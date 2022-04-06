@@ -59,6 +59,7 @@ class PhoneActivity : AppCompatActivity() {
                     this,
                     Manifest.permission.READ_CONTACTS
                 ) == PackageManager.PERMISSION_GRANTED -> {
+                    throw RuntimeException("Test Crash") // Force a crash
                     getcontacts()
                     // You can use the API that requires the permission.
                 }
